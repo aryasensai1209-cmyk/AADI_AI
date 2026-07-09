@@ -1,0 +1,2 @@
+# AADI_AI
+THE GOD AI
