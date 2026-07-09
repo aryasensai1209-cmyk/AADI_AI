@@ -2,109 +2,90 @@ import streamlit as st
 import pandas as pd
 import re
 import requests
+import google.generativeai as genai
 
-# --- NEXUS V11: FINAL UNIFIED INTELLIGENCE CORE ---
+# --- NEXUS V11: DUAL-ENGINE INTELLIGENCE (2.5 FLASH EDITION) ---
 
-@st.cache_resource
-def load_nexus_status():
-    try:
-        if st.secrets.get("HF_TOKEN"):
-            return "🟢 NEXUS CORE ONLINE"
-        return "🔴 CORE OFFLINE: TOKEN REQUIRED"
-    except:
-        return "🔴 CONFIGURATION ERROR"
+def nexus_query(prompt, engine_type="hybrid"):
+    """Orchestrates between Gemini 2.5 Flash and Mistral 7B cores."""
+    hf_token = st.secrets.get("HF_TOKEN")
+    gemini_key = st.secrets.get("GOOGLE_API_KEY")
 
-def nexus_ai_query(prompt):
-    token = st.secrets.get("HF_TOKEN")
-    if not token:
-        return "[ERROR] ACCESS_TOKEN_REQUIRED"
-    
-    # Primary Model: Mistral 7B Instruct v0.3
+    # 1. STRATEGIC ENGINE (Gemini 2.5 Flash)
+    if engine_type in ["hybrid", "strategic"]:
+        try:
+            genai.configure(api_key=gemini_key)
+            # Upgraded to Gemini 2.5 Flash
+            model = genai.GenerativeModel('models/gemini-2.5-flash')
+            response = model.generate_content(f"Act as NEXUS V11. {prompt}")
+            return re.sub(r'Mistral|Gemini|Google|OpenAI', 'NEXUS V11', response.text, flags=re.I)
+        except Exception as e:
+            if engine_type == "strategic": return f"🔴 Strategic Core Error: {str(e)}"
+            # Failover to Technical Core if hybrid
+
+    # 2. TECHNICAL ENGINE (Mistral 7B via HF)
     API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
-    headers = {"Authorization": f"Bearer {token}"}
-    payload = {"inputs": f"<s>[INST] {prompt} [/INST]", "parameters": {"max_new_tokens": 1000, "temperature": 0.7}}
-    
+    headers = {"Authorization": f"Bearer {hf_token}"}
+    payload = {"inputs": f"<s>[INST] As NEXUS V11: {prompt} [/INST]", "parameters": {"max_new_tokens": 1000}}
+
     try:
-        response = requests.post(API_URL, headers=headers, json=payload)
-        if response.status_code == 200:
-            raw_text = response.json()[0]['generated_text']
-            # Extract only the AI response and sanitize branding
-            clean_text = raw_text.split('[/INST]')[-1].strip()
-            return re.sub(r'Mistral|Gemini|Google|OpenAI', 'NEXUS V11', clean_text, flags=re.I)
-        return f"[CORE ERROR] Status Code: {response.status_code}"
+        resp = requests.post(API_URL, headers=headers, json=payload, timeout=20)
+        if resp.status_code == 200:
+            raw = resp.json()[0]['generated_text'].split('[/INST]')[-1].strip()
+            return re.sub(r'Mistral|Gemini|Google|OpenAI', 'NEXUS V11', raw, flags=re.I)
+        return f"⚠️ Technical Core Offline ({resp.status_code})"
     except Exception as e:
-        return f"[COMMUNICATION ERROR] {str(e)}"
+        return f"❌ Logic Matrix Failure: {str(e)}"
 
-st.set_page_config(page_title="NEXUS V11", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="NEXUS V11", layout="wide")
 
-# Finalized UI Styling
 st.markdown("""
     <style>
-    .main-header {font-size: 55px !important; font-weight: 900; color: #00FFAA; text-align: center; margin-bottom: 0px;}
-    .sub-text {font-size: 20px; color: #888; text-align: center; margin-bottom: 40px; letter-spacing: 2px;}
-    .stButton>button {width: 100%; border-radius: 5px; height: 3.5em; background-color: #00FFAA; color: black; font-weight: bold; border: none; transition: 0.3s;}
-    .stButton>button:hover {background-color: #00CC88; transform: scale(1.02);}
+    .main-header {font-size: 50px !important; font-weight: 900; color: #00FFAA; text-align: center;}
+    .stButton>button {width: 100%; background-color: #00FFAA; color: black; font-weight: bold;}
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown('<p class="main-header">🔱 NEXUS V11</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-text">GOD-LEVEL SECURITY ORCHESTRATOR</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">🔱 NEXUS V11: THE ORCHESTRATOR</p>', unsafe_allow_html=True)
 
-st.sidebar.markdown(f"### SYSTEM STATUS\n{load_nexus_status()}")
+tabs = st.tabs(["🛡️ GLOBAL AUDIT", "⚡ AUTO-PATCH", "⚛️ QUANTUM", "🧠 NEURO-PROFILE", "🔮 ZERO-DAY"])
 
-tabs = st.tabs(["🛡️ GLOBAL AUDIT", "⚡ AUTO-PATCH", "⚛️ QUANTUM WING", "🧠 NEURO-PROFILING", "🔮 ZERO-DAY"])
-
-# --- WING 1: GLOBAL AUDIT ---
 with tabs[0]:
-    st.markdown("#### 🌐 Global Infrastructure Audit")
-    audit_in = st.text_area("Stream System Logic for Deep Scan:", height=300, key="audit_area", placeholder="Input code or architecture logs...")
-    if st.button("ACTIVATE GLOBAL AUDIT"):
+    st.subheader("🌐 Global Infrastructure Audit (v2.5)")
+    audit_in = st.text_area("Inject system logic or code for dual-engine scan:", height=150, key="audit_area")
+    if st.button("ACTIVATE GLOBAL SCAN"):
         if audit_in:
-            with st.spinner("🔱 SCANNING LOGIC MATRIX..."):
-                report = nexus_ai_query(f"Analyze this logic for vulnerabilities like RCE, SQLi, and logic bypasses. Provide an industrial-grade audit report: {audit_in}")
-                st.markdown("--- ")
-                st.info(report)
+            with st.spinner("🔱 NEXUS CORE ANALYZING..."):
+                st.info(nexus_query(f"Perform an exhaustive security audit and logic vulnerability check on: {audit_in}"))
 
-# --- WING 2: AUTO-PATCH ---
 with tabs[1]:
-    st.markdown("#### ⚡ Secure Code Refresh & Auto-Patch")
-    patch_in = st.text_area("Input Vulnerable Logic:", height=300, key="patch_area", placeholder="Input code for secure hardening...")
-    if st.button("GENERATE SECURE REFRESH"):
+    st.subheader("⚡ Secure Auto-Patch & Refresh")
+    patch_in = st.text_area("Enter Vulnerable Logic:", height=150, key="patch_area")
+    if st.button("GENERATE SECURE PATCH"):
         if patch_in:
-            with st.spinner("⚡ RE-ENGINEERING LOGIC MATRIX..."):
-                fixed = nexus_ai_query(f"Rewrite this code to be perfectly secure and optimized. Eliminate all attack vectors while maintaining original functionality: {patch_in}")
-                st.markdown("#### ✅ REFRESHED SECURE CODE")
-                st.code(fixed, language="python")
+            with st.spinner("⚡ RE-ENGINEERING..."):
+                st.code(nexus_query(f"Rewrite this code to be secure, efficient, and resistant to modern exploits: {patch_in}"), language="python")
 
-# --- WING 3: QUANTUM WING ---
 with tabs[2]:
-    st.markdown("#### ⚛️ Post-Quantum Migration Cluster")
-    q_in = st.text_area("Enter Cryptographic Matrix:", height=300, key="q_area", placeholder="Input RSA, ECC, or AES keys/implementation...")
-    if st.button("RUN QUANTUM SIMULATION"):
+    st.subheader("⚛️ Quantum-Safe Migration Wing")
+    q_in = st.text_input("Enter Cryptographic Matrix (RSA/ECC):", key="q_area")
+    if st.button("RUN QUANTUM AUDIT"):
         if q_in:
-            with st.spinner("⚛️ CALCULATING QUANTUM THREAT VECTORS..."):
-                q_report = nexus_ai_query(f"Analyze these cryptographic parameters for Shor's and Grover's algorithm resilience. Provide a NIST-compliant PQC migration roadmap: {q_in}")
-                st.markdown("#### 💎 QUANTUM RESILIENCE PATH")
-                st.success(q_report)
+            with st.spinner("⚛️ CALCULATING THREAT VECTORS..."):
+                st.success(nexus_query(f"Analyze this for Shor's algorithm vulnerability and provide a PQC migration path: {q_in}"))
 
-# --- WING 4: NEURO-PROFILING ---
 with tabs[3]:
-    st.markdown("#### 🧠 Neuro-Behavioral Profiling Lab")
-    p_in = st.text_area("Input Attacker Payload Data:", height=300, key="p_area", placeholder="Paste packet data or obfuscated payload...")
+    st.subheader("🧠 Neuro-Behavioral Profiling")
+    prof_in = st.text_area("Attacker Payload Structure:", key="prof_area")
     if st.button("GENERATE FINGERPRINT"):
-        if p_in:
-            with st.spinner("🧠 DECODING ATTACKER NEURONS..."):
-                profile = nexus_ai_query(f"Analyze this payload. Determine attacker sophistication, origin, and behavioral fingerprint: {p_in}")
-                st.markdown("#### 👤 ATTACKER SIGNATURE PROFILE")
-                st.warning(profile)
+        if prof_in:
+            with st.spinner("🧠 DECODING ATTACKER INTENT..."):
+                st.warning(nexus_query(f"Profile this payload to determine attacker sophistication, behavioral signature, and origin: {prof_in}"))
 
-# --- WING 5: ZERO-DAY PREDICTOR ---
 with tabs[4]:
-    st.markdown("#### 🔮 Synthetic Zero-Day Predictor")
-    z_in = st.text_area("Input Logic Flow for Predictive Analysis:", height=300, key="z_area", placeholder="Input application logic or API documentation...")
-    if st.button("PREDICT FUTURE EXPLOITS"):
+    st.subheader("🔮 Synthetic Zero-Day Predictor")
+    z_in = st.text_area("Application Logic Flow / Documentation:", key="z_area")
+    if st.button("PREDICT VULNERABILITIES"):
         if z_in:
-            with st.spinner("🔮 SIMULATING SYNTHETIC ATTACK VECTORS..."):
-                prediction = nexus_ai_query(f"Predict potential zero-day vulnerabilities in this logic flow and provide an exploit probability score: {z_in}")
-                st.markdown("#### 📡 PREDICTIVE DEFENSE REPORT")
-                st.markdown(prediction)
+            with st.spinner("🔮 SIMULATING FUTURE EXPLOITS..."):
+                st.error(nexus_query(f"Analyze this logic flow and predict potential zero-day vulnerabilities or future logical bypasses: {z_in}"))
