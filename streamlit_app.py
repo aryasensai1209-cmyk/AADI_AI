@@ -42,7 +42,7 @@ def run_god_audit(input_data, show_progress=False):
     intel = load_intelligence()
     g_model = intel.get("gemini")
     start = time.time()
-    
+
     # God-Mode: Pre-processing for Hyper-Scale with Progress
     if show_progress:
         p_bar = st.progress(0, text="Initializing Vector Engine...")
@@ -52,12 +52,12 @@ def run_god_audit(input_data, show_progress=False):
         p_bar.empty()
 
     fast_hits = hyper_vector_scan(input_data)
-    
+
     if g_model:
         prompt = f"""SYSTEM: NEXUS GOD-LEVEL DEFENSE CORE.
         TASK: Analyze this multi-billion line simulation for zero-day paths and logic flaws.
         INPUT: {input_data[:60000]}
-        
+
         REQUIREMENTS:
         1. RISK ARCHITECTURE (Scale 0-100)
         2. PQC MIGRATION STATUS
@@ -110,4 +110,3 @@ with tabs[4]:
     if st.button("SIMULATE EXPLOITS"):
         with st.spinner("Running 10^7 Attack Vector Simulations..."):
             st.write(run_god_audit(f"PREDICT ZERO-DAYS FOR THIS ARCHITECTURE: {z_in}"))
-"""
