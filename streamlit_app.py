@@ -22,20 +22,20 @@ def load_intelligence():
 def run_god_audit(code_sample):
     intel = load_intelligence()
     g_model = intel.get("gemini")
-    
+
     # Phase 1: Deep Heuristic & Mistral Simulation
     vulnerabilities = []
     if re.search(r"eval\(|exec\(|system\(|popen\(|subprocess\.", code_sample): vulnerabilities.append("🔴 CRITICAL: Remote Code Execution (RCE) vector")
     if re.search(r"input\(|raw_input\(|sys\.argv", code_sample): vulnerabilities.append("🟡 WARNING: Unsanitized Entry Point")
     if re.search(r"chmod\(777\)|/etc/passwd|/etc/shadow", code_sample): vulnerabilities.append("🔴 CRITICAL: Escalated Privilege / Path Traversal")
-    
+
     # Phase 2: Gemini 2.5 Flash Reasoning Agent
     if g_model:
         prompt = f"""SYSTEM: NEXUS GOD-LEVEL AUDITOR.
         TASK: Perform an exhaustive security analysis. Identify Zero-Days, Logical Overflows, and Race Conditions.
-        TARGET CODE: 
+        TARGET CODE:
         {code_sample}
-        
+
         OUTPUT FORMAT:
         - RISK SCORE (0-100)
         - TECHNICAL VULNERABILITY MAPPING
@@ -58,7 +58,7 @@ def advanced_pqc_migration(code):
     }
     detected = [k for k, v in patterns.items() if re.search(v, code, re.I)]
     if not detected: return "✅ CRYPTO STATUS: PQC-Resilient or No Encryption Logic Detected."
-    
+
     report = f"🚨 SHOR'S ALGORITHM ALERT: {', '.join(detected)} detected.\n\n"
     report += "🛠️ GOD-LEVEL REMEDIATION:\n"
     report += "1. Replace Key Exchange with **ML-KEM-1024 (Kyber)**.\n"
@@ -72,7 +72,7 @@ def neuro_behavioral_profiling(payload):
     if re.search(r"DROP TABLE|UNION SELECT|OR '1'='1'|--", payload, re.I): score += 40
     if re.search(r"<script|alert\(|onerror=", payload, re.I): score += 35
     if "base64" in payload.lower() and len(payload) > 200: score += 25
-    
+
     profile = "Script Kiddie" if score < 40 else "Automated Botnet" if score < 70 else "Advanced Persistent Threat (APT)"
     return {"Risk": "CRITICAL" if score > 80 else "HIGH", "Score": score, "Actor": profile, "Intent": "Exfiltration / System Takeover"}
 
@@ -115,4 +115,3 @@ with tabs[4]:
     if st.button("SIMULATE ZERO-DAY EXPLOITS"):
         with st.spinner("Running 1M Attack Simulations..."):
             st.write(run_god_audit(f"PREDICT ZERO-DAY VULNERABILITIES FOR THIS ARCHITECTURE: {s_input}"))
-"
