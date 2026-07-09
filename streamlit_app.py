@@ -28,10 +28,19 @@ def load_nexus_core():
     except Exception as e:
         return {"primary": None, "technical": None, "status": f"🔴 ERROR: {str(e)}"}
 
+# Retry decorator to handle 429 Quota errors
+@retry(
+    retry=retry_if_exception_type(exceptions.ResourceExhausted),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    stop=stop_after_attempt(3),
+    reraise=True
+)
+def call_nexus_primary(model, prompt):
+    return model.generate_content(prompt)
+
 class NexusEngine:
     @staticmethod
     def run_heuristics(data):
-        # 20,016 Node Logic Matrix (Simulated by dense shard iteration)
         shards = [
             (r"eval\\(", "RCE_DETECTION"), (r"RSA\\.generate\\(1024\\)", "WEAK_CRYPTO"),
             (r"\\\\x[0-9a-fA-F]{2}", "POLYMORPHIC_SHELL"), (r"chmod\\(777\\)", "PRIV_ESC"),
@@ -60,20 +69,25 @@ def deploy_orchestrator(data, mode, wing):
     h_hits = NexusEngine.run_heuristics(data)
     c3.metric("Threat Shards", len(h_hits), "CRITICAL" if h_hits else "SAFE")
 
+    primary_success = False
     if intel["primary"]:
         try:
-            with st.spinner(f"🔱 {wing} CLOUD REASONING..."):
-                res = intel["primary"].generate_content(f"[NEXUS V11 - {wing}] Analyze at god-level: {data[:5000]}")
+            with st.spinner(f"🔱 {wing} CLOUD REASONING (RETRY ENABLED)..."):
+                prompt = f"[NEXUS V11 - {wing}] Analyze at god-level: {data[:5000]}"
+                res = call_nexus_primary(intel["primary"], prompt)
                 st.info(sanitize(res.text))
-        except: st.warning("FAILOVER: CLOUD QUOTA HIT.")
+                primary_success = True
+        except Exception as e:
+            st.warning(f"🛰️ CLOUD QUOTA EXCEEDED AFTER RETRIES: {str(e)[:50]}... ACTIVATING LOCAL FAILOVER...")
     
-    if intel["technical"]:
+    if not primary_success:
         with st.spinner(f"📟 {wing} TECHNICAL VALIDATION..."):
-            t_res = intel["technical"](f"<s>[INST] NEXUS V11 Technical {mode}: {data[:500]} [/INST]", max_new_tokens=400)
-            st.code(sanitize(t_res[0]['generated_text'].split('[/INST]')[-1]), language="python")
-    elif h_hits:
-        st.error("HEURISTIC BLOCK ACTIVATED")
-        st.write(h_hits)
+            if intel["technical"]:
+                t_res = intel["technical"](f"<s>[INST] NEXUS V11 Technical {mode}: {data[:500]} [/INST]", max_new_tokens=400)
+                st.code(sanitize(t_res[0]['generated_text'].split('[/INST]')[-1]), language="python")
+            else:
+                st.error("LOCAL FAILOVER ACTIVE: NO GPU DETECTED.")
+                st.write(h_hits)
 
 st.set_page_config(page_title="NEXUS V11", layout="wide")
 st.title("🔱 NEXUS V11 | God-Level Security Orchestrator")
